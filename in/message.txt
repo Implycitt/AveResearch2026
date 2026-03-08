@@ -1,3 +1,4 @@
-header
+iNaturalist Research Project
 
-Hello world
+Hello! My name is Quentin Bordelon and I am an undergraduate student at Louisiana State University. I am currently doing research on bird observations and their distance from urban areas. If you have any observations that you would be able to contribute please consider joining the research project on iNaturalist. Additionally, if you have any questions regarding the research feel free to reach out to me at qborde1@lsu.edu Additionally, if you have any questions regarding the research feel free to reach out to me at qborde1@lsu.edu. Thank you for your consideration!
+https://www.inaturalist.org/projects/birds-in-urban-vs-non-urban-environments

@@ -5,10 +5,9 @@ from dotenv import load_dotenv
 
 from driver import Driver
 
-def getHeaderBody():
+def getHeaderBody() -> tuple:
     with open("./in/message.txt", 'r') as file:
-        wholeFile = file.read()
-        header, body = map(str, wholeFile.split('\n\n'))
+        header, body = map(str, file.read().split('\n\n'))
     return (header, body.strip('\n'))
 
 def login(webDriver: Driver) -> None:
@@ -24,8 +23,7 @@ def login(webDriver: Driver) -> None:
 
     webDriver.pressButton(primaryDriver.find_element(By.NAME, "commit"))
 
-def sendMessage(webDriver: Driver) -> None:
-    header, body = map(str, getHeaderBody())
+def sendMessage(webDriver: Driver, header: str, body: str) -> None:
     primaryDriver = webDriver.driver
 
     headerField = primaryDriver.find_element(By.ID, "message_subject")
@@ -36,18 +34,12 @@ def sendMessage(webDriver: Driver) -> None:
 
     webDriver.pressButton(primaryDriver.find_element(By.NAME, "commit"))
 
-def Messenger() -> None:
-    load_dotenv(dotenv_path="./in/.env")
+def Messenger(user: str, webDriver: webdriver) -> None:
     baseUrl = "https://www.inaturalist.org/messages/new?to="
 
-    with open("./out/users.txt", 'r') as file:
-        users: tuple() = tuple(line.strip('\n') for line in file)
-
-    webDriver = Driver()
-    login(webDriver)
+    header, body = map(str, getHeaderBody())
 
     for user in users:
-        messageUrl = baseUrl + user
-        connectUrl(webDriver, messageUrl)
+        connectUrl(webDriver, baseUrl + user)
         sendMessage(webDriver)
 
