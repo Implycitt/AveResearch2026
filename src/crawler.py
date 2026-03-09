@@ -51,7 +51,6 @@ def crawl() -> None:
 
     unvisitedUrls = startPageCrawl(primaryDriver)
     visited = set()
-    pointer = 0
 
     while (len(unvisitedUrls) != 0):
         nextLink = unvisitedUrls.pop()

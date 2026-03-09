@@ -19,7 +19,6 @@ class Driver:
 
         if (sys.platform.startswith("linux")):
             self.driver = self.linuxWebdriver(chromeOptions)
-
         self.driver = webdriver.Chrome(options=chromeOptions)
 
     def linuxWebdriver(self, chromeOptions) -> webdriver:

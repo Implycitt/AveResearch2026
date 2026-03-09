@@ -39,7 +39,8 @@ def Messenger(user: str, webDriver: webdriver) -> None:
 
     header, body = map(str, getHeaderBody())
 
-    for user in users:
-        connectUrl(webDriver, baseUrl + user)
-        sendMessage(webDriver)
+    newUrl = baseUrl + user
+    print(newUrl)
+    webDriver.connectUrl(newUrl)
+    sendMessage(webDriver, header, body)
 
