@@ -5,7 +5,7 @@
     @file observations.py
     @author Quentin Bordelon
     <pre>
-    Date: 10-03-2026
+    Date: 14-03-2026
 
     MIT License
 
@@ -32,187 +32,203 @@
     </pre>
 ''' 
 
-import requests, time, json, os, glob, math
+import requests, time, json, os, glob
 import pandas as pd
 
-def fetchProjectData(projectSlug: str, startId: int, endId: int, filename: str) -> None:
-    baseUrl: str = "https://api.inaturalist.org/v1/observations"
-    filepath: str = os.path.join("Research", filename)
+def fetchProjectData(projectSlug: str, outputDir: str = "./Research") -> None:
+    os.makedirs(outputDir, exist_ok=True)
+    baseUrl = "https://api.inaturalist.org/v1/observations"
     
-    params = {
-        "project_id": projectSlug,
-        "per_page": 200,
-        "order": "asc",
-        "order_by": "id",
-        "id_above": startId
-    }
-
-    with open(filepath, "w", encoding="utf-8") as file:
-        currentId: int = startId
+    lastId = 0
+    totalDownloaded = 0
+    fileIndex = 1
+    recordsPerFile = 250000 
+    
+    currentFilePath = os.path.join(outputDir, f"observations{fileIndex}.jsonl")
+    currentFile = open(currentFilePath, "w", encoding="utf-8")
+    
+    while True:
+        params = {
+            "project_id": projectSlug,
+            "order_by": "id",
+            "order": "asc",
+            "per_page": 200,
+            "id_above": lastId
+        }
         
-        while currentId < endId:
-            try:
-                response = requests.get(baseUrl, params=params)
-                response.raise_for_status()
-                data = response.json()
-                results = data.get("results", [])
-
-                if not results:
-                    break
-
-                for observation in results:
-                    currentId = observation['id']
-                    if currentId > endId:
-                        break
-                    
-                    flattened = {
-                        "obs_id": observation.get("id"),
-                        "timestamp": observation.get("time_observed_at"),
-                        "observedDate": observation.get("observed_on"),
-                        "taxonName": observation.get("taxon", {}).get("name") if observation.get("taxon") else None,
-                        "commonName": observation.get("taxon", {}).get("preferred_common_name") if observation.get("taxon") else None,
-                        "rank": observation.get("taxon", {}).get("rank") if observation.get("taxon") else None,
-                        "latitude": observation.get("location", "").split(",")[0] if observation.get("location") else None,
-                        "longitude": observation.get("location", "").split(",")[1] if observation.get("location") else None,
-                        "userLogin": observation.get("user", {}).get("login"),
-                        "quality": observation.get("quality_grade")
-                    }
-                    
-                    file.write(json.dumps(flattened) + "\n")
-
-                params["id_above"] = currentId
+        try:
+            response = requests.get(baseUrl, params=params, timeout=15)
+            
+            if response.status_code != 200:
+                time.sleep(10)
+                continue
                 
-                time.sleep(1.2) 
-
-            except Exception as e:
-                print(f"Error at ID {currentId}: {e}")
+            data = response.json()
+            results = data.get("results", [])
+            
+            if not results:
                 break
-
-def syncProject(projectSlug: str) -> None:
-    baseUrl: str = "https://api.inaturalist.org/v1/observations"
-    outputPath: str = "Research/observationsUpdates.jsonl"
-
-    lastUpdate = getLatestUpdate()
-    
-    params = {
-        "project_id": projectSlug,
-        "per_page": 200,
-        "order": "asc",
-        "order_by": "updated_at",
-    }
-
-    if lastUpdate:
-        params["updated_since"] = lastUpdate
-
-    with open(outputPath, "a", encoding="utf-8") as file:
-        page: int = 1
-        while True:
-            params["page"] = page
-            try:
-                response = requests.get(baseUrl, params=params)
-                response.raise_for_status()
-                results = response.json().get("results", [])
-
-                if not results:
-                    break
-
-                for observation in results:
-                    flattened = {
-                        "obs_id": observation.get("id"),
-                        "timestamp": observation.get("time_observed_at"),
-                        "observedDate": observation.get("observed_on"),
-                        "taxonName": observation.get("taxon", {}).get("name") if observation.get("taxon") else None,
-                        "commonName": observation.get("taxon", {}).get("preferred_common_name") if observation.get("taxon") else None,
-                        "rank": observation.get("taxon", {}).get("rank") if observation.get("taxon") else None,
-                        "latitude": observation.get("location", "").split(",")[0] if observation.get("location") else None,
-                        "longitude": observation.get("location", "").split(",")[1] if observation.get("location") else None,
-                        "userLogin": observation.get("user", {}).get("login"),
-                        "quality": observation.get("quality_grade")
-                    }
-                    file.write(json.dumps(flattened) + "\n")
-
-                if len(results) < 200: 
-                    break
-
-                page += 1
-                time.sleep(1.2)
                 
-            except Exception as e:
-                print(f"Sync interrupted: {e}")
-                break
+            for observation in results:
+                totalDownloaded += 1
+                
+                if observation["id"] > lastId:
+                    lastId = observation["id"]
 
-def getLatestUpdate(directory: str = "Research") -> str | None:
-    files = glob.glob(os.path.join(directory, "*.jsonl"))
-    if not files:
-        return None
+                flattened = {
+                    "id": observation.get("id"),
+                    "observedDate": observation.get("observed_on"),
+                    "taxonName": observation.get("taxon", {}).get("name") if observation.get("taxon") else None,
+                    "rank": observation.get("taxon", {}).get("rank") if observation.get("taxon") else None,
+                    "latitude": observation.get("location", "").split(",")[0] if observation.get("location") else None,
+                    "longitude": observation.get("location", "").split(",")[1] if observation.get("location") else None,
+                    "quality": observation.get("quality_grade")
+                }
+
+                currentFile.write(json.dumps(flattened) + "\n")
+                    
+                if totalDownloaded % recordsPerFile == 0:
+                    currentFile.close()
+                    fileIndex += 1
+                    currentFilePath = os.path.join(outputDir, f"observations{fileIndex}.jsonl")
+                    currentFile = open(currentFilePath, "w", encoding="utf-8")
+            
+            time.sleep(1.2) 
+            
+        except:
+            time.sleep(10)
+            
+    currentFile.close()
+
+def syncProjectData(projectSlug: str, outputDir: str = "./Research") -> None:
+    os.makedirs(outputDir, exist_ok=True)
     
-    latestTime: str | None = None
+    lastId = 0
+    fileIndex = 1
     
-    for file in files:
-        with open(file, 'r') as f:
-            for line in f:
+    existingFiles = glob.glob(os.path.join(outputDir, "observations*.jsonl"))
+    
+    if existingFiles:
+        indices = [int(f.split('observations')[-1].split('.jsonl')[0]) for f in existingFiles]
+        fileIndex = max(indices)
+        
+        lastFile = os.path.join(outputDir, f"observations{fileIndex}.jsonl")
+        recordCount = 0
+
+        if os.path.exists(lastFile) and os.path.getsize(lastFile) > 0:
+            with open(lastFile, 'r', encoding='utf-8') as f:
+                for line in f:
+                    recordCount += 1
+                    stripped = line.strip()
+                    if stripped:
+                        lastValidLine = stripped
+            if lastValidLine:
                 try:
-                    data = json.loads(line)
-                    obsTime = data.get("updated_at")
-                    if not obsTime:
-                        continue
+                    obs = json.loads(lastValidLine)
+                    lastId = obs['id']
+                except:
+                    return
+        
+        if recordCount >= 250000:
+            fileIndex += 1
+            mode = 'w'
+        else:
+            mode = 'a'
+    else:
+        mode = 'w'
 
-                    if latestTime is None or obsTime > latestTime:
-                        latestTime = obsTime
-                except json.JSONDecodeError:
-                    continue
+    baseUrl = "https://api.inaturalist.org/v1/observations"
+    totalInCurrentFile = 0 if mode == 'w' else recordCount
+    
+    currentFilePath = os.path.join(outputDir, f"observations{fileIndex}.jsonl")
+    currentFile = open(currentFilePath, mode, encoding="utf-8")
+    
+    while True:
+        params = {
+            "project_id": projectSlug,
+            "order_by": "id",
+            "order": "asc",
+            "per_page": 200,
+            "id_above": lastId
+        }
+        
+        try:
+            response = requests.get(baseUrl, params=params, timeout=15)
+            if response.status_code != 200:
+                time.sleep(10)
+                continue
+                
+            data = response.json()
+            results = data.get("results", [])
+            
+            if not results:
+                break
+                
+            for observation in results:
+                if observation["id"] > lastId:
+                    lastId = observation["id"]
+
+                flattened = {
+                    "id": observation.get("id"),
+                    "observedDate": observation.get("observed_on"),
+                    "taxonName": observation.get("taxon", {}).get("name") if observation.get("taxon") else None,
+                    "rank": observation.get("taxon", {}).get("rank") if observation.get("taxon") else None,
+                    "latitude": observation.get("location", "").split(",")[0] if observation.get("location") else None,
+                    "longitude": observation.get("location", "").split(",")[1] if observation.get("location") else None,
+                    "quality": observation.get("quality_grade")
+                }
+
+                currentFile.write(json.dumps(flattened) + "\n")
+                totalInCurrentFile += 1
                     
-    return latestTime
-
-def getIdBounds(projectSlug: str) -> tuple[int , int]:
-    baseUrl: str = "https://api.inaturalist.org/v1/observations"
-
-    paramsMin: dict[str, str] = {"project_id": projectSlug, "order": "asc", "order_by": "id", "per_page": 1}
-    paramsMax: dict[str, str] = {"project_id": projectSlug, "order": "desc", "order_by": "id", "per_page": 1}
-
-    resMin = requests.get(baseUrl, params=paramsMin).json()
-    resMax = requests.get(baseUrl, params=paramsMax).json()
-
-    minId: int = int(resMin['results'][0]['id'])
-    maxId: int = int(resMax['results'][0]['id'])
-
-    return minId, maxId
+                if totalInCurrentFile >= 250000:
+                    currentFile.close()
+                    fileIndex += 1
+                    totalInCurrentFile = 0
+                    currentFilePath = os.path.join(outputDir, f"observations{fileIndex}.jsonl")
+                    currentFile = open(currentFilePath, "w", encoding="utf-8")
+            
+            time.sleep(1.2) 
+            
+        except Exception as e:
+            print(f"Error encountered: {e}")
+            time.sleep(10)
+            
+    currentFile.close()
 
 def optimizeConvertToParquet(inputDir="Research", outputFile="Research/observations.parquet") -> None:
     files = glob.glob(os.path.join(inputDir, "*.jsonl"))
+
     if not files:
-        print("No files found in the output directory.")
         return
 
-    df = pd.concat([pd.read_json(file, lines=True) for file in files])
+    df = pd.concat([pd.read_json(file, lines=True) for file in files], ignore_index=True)
+    df['observedDate'] = pd.to_datetime(df['observedDate'], errors='coerce')
 
-    cat_columns = ['rank', 'quality', 'userLogin', 'taxonName', 'commonName']
-    for col in cat_columns:
+    df = df.drop_duplicates(subset=['id'], keep='last')
+
+    catColumns = ['rank', 'quality', 'taxonName']
+    for col in catColumns:
         if col in df.columns:
             df[col] = df[col].astype('category')
     df['latitude'] = pd.to_numeric(df['latitude'], downcast='float')
     df['longitude'] = pd.to_numeric(df['longitude'], downcast='float')
-    df['timestamp'] = pd.to_datetime(df['timestamp'], utc=True)
+    df['year'] = df['observedDate'].dt.year.fillna(0).astype(int)
 
     df.to_parquet(outputFile, index=False, engine='pyarrow', compression='snappy')
 
-def initData() -> None:
-    project: str = "birds-in-urban-vs-non-urban-environments"
-    minId, maxId = getIdBounds(project)
+def main():
+    slug = "birds-in-urban-vs-non-urban-environments"
 
-    totalRange: int = int(maxId) - int(minId)
-    step: int = math.ceil(totalRange / 3)
+    syncProjectData(slug)
+    optimizeConvertToParquet()
 
-    chunks = [
-        (minId - 1, minId + step, "observations1.jsonl"),
-        (minId + step, minId + (2 * step), "observations2.jsonl"),
-        (minId + (2 * step), maxId, "observations3.jsonl")
-    ]
-
-    for start, end, name in chunks:
-        fetchProjectData(project, start, end, name)
+    df = pd.read_parquet("./Research/observations.parquet")
+    print("number of observations: ", len(df))
 
 if __name__ == "__main__":
-    #initData()
-    #optimizeConvertToParquet()
-    pass
+    slug = "birds-in-urban-vs-non-urban-environments"
+    optimizeConvertToParquet()
+
+    df = pd.read_parquet("./Research/observations.parquet")
+    print("number of observations: ", len(df))

@@ -73,5 +73,5 @@ pip install -r requirements.txt
 
 The code is split into the subdirectories, Acquisition and Data based on its function. The documentation is within each corresponding subdirectory in the README.md file.
 
-* [Acquisition](https://github.com/Implycitt/AveResearch2026/tree/main/src/Acquisition/README.md) readme for the code documenting how I got 600.000+ observations.
-* [Data](https://github.com/Implycitt/AveResearch2026/tree/main/src/Data/README.md) readme for the code used to analyze the observations.
+* [Acquisition](https://github.com/Implycitt/AveResearch2026/blob/main/src/Acquisition/README.md) readme for the code documenting how I got 600.000+ observations.
+* [Data](https://github.com/Implycitt/AveResearch2026/blob/main/src/Data/README.md) readme for the code used to analyze the observations.

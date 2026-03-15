@@ -6,7 +6,7 @@ This file will change and be fixed later. I would rather not focus on writing re
 
 This section of the code will not be covered in as much depth as the other sections as it does not directly affect the research.
 
-Please ensure that you have followed the prerequisites described in the [src directory readme](https://github.com/Implycitt/AveResearch2026/blob/main/src/src.md) to be able to run this part of the code.
+Please ensure that you have followed the prerequisites described in the [src directory readme](https://github.com/Implycitt/AveResearch2026/blob/main/src/README.md) to be able to run this part of the code.
 
 ### environment variables
 

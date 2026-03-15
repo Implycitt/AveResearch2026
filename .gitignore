@@ -1,5 +1,10 @@
 # Created by venv; see https://docs.python.org/3/library/venv.html
 venv/
 __pycache__/
+
+# environment variables and secrets
 .env
+
+# population density maps get downloaded here, no need to upload to github
 Research/Countries/
+Research/Historic/
