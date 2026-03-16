@@ -3,7 +3,7 @@
     @file analysis.py
     @author Quentin Bordelon
     <pre>
-    Date: 14-03-2026
+    Date: 15-03-2026
 
     MIT License
 
@@ -37,7 +37,7 @@ from scipy.stats import chi2_contingency
 import os, concurrent.futures
 from tqdm import tqdm
 
-import popdensity, observations
+import popdensity 
 
 def getFilePath(lat: float, lon: float, year: int) -> str:
     if year > 2000:
@@ -64,7 +64,6 @@ def processParquetData(inputParquet, outputParquet):
 
     dataFrame = pd.read_parquet(inputParquet)
 
-    before = len(dataFrame)
     dataFrame = dataFrame.dropna()
 
     dataFrame = dataFrame[dataFrame["year"] >= 2015]
@@ -141,15 +140,6 @@ def processParquetData(inputParquet, outputParquet):
     dataFrame['isUrban'] = dataFrame['nearbyPopulation'] >= URBAN_THRESHOLD
     dataFrame.to_parquet(outputParquet, index=False, compression='snappy')
 
-def calculateCramersV(contingencyTable, chi2):
-    n = contingencyTable.sum().sum()
-    phi2 = chi2 / n
-    r, k = contingencyTable.shape
-    phi2Corr = max(0, phi2 - ((k-1)*(r-1))/(n-1))
-    rCorr = r - ((r-1)**2)/(n-1)
-    kCorr = k - ((k-1)**2)/(n-1)
-    return np.sqrt(phi2Corr / min((kCorr-1), (rCorr-1)))
-
 def chiSquaredPerSpecies(dataFrame, alpha=0.05):
     species = dataFrame['taxonName'].dropna().unique()
 
@@ -171,12 +161,10 @@ def chiSquaredPerSpecies(dataFrame, alpha=0.05):
             continue
  
         chi, p, _, _ = chi2_contingency(contingencyTable)
-        cramersV = calculateCramersV(contingencyTable, chi)
         rows.append({
             'taxonName': taxon,
             'chi2': chi,
             'pValue': p,
-            'cramersV': cramersV,
             'urbanCount': int(a),
             'nonUrbanCount': int(b),
         })
@@ -186,7 +174,3 @@ def chiSquaredPerSpecies(dataFrame, alpha=0.05):
     significant = results[results['pValue'] < correctedAlpha].copy()
  
     return significant
-
-if __name__ == "__main__":
-    observations.main()
-    processParquetData("./Research/observations.parquet", "./Research/processedObservations.parquet")
