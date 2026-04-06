@@ -1,0 +1,241 @@
+\documentclass{article}
+
+\usepackage{graphicx} 
+\usepackage{blindtext}
+\usepackage{titlesec}
+\usepackage{booktabs}
+\usepackage{pgfplotstable}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{adjustbox}
+\usepackage{array}
+\usepackage[style=numeric-comp, backend=biber]{biblatex}
+\usepackage[capposition=top]{floatrow}
+
+\AddToHook{cmd/section/before}{\clearpage}
+\graphicspath{ {./images} }
+\addbibresource{references.bib}
+
+\AtBeginDocument{
+  \mathchardef\stdcomma=\mathcode`,
+  \mathcode`,="8000
+}
+\begingroup\lccode`~=`, \lowercase{\endgroup\def~}{\stdcomma\,}
+
+\title{The Effects of Urbanization on Ave Count and Diversity}
+\author{Quentin Bordelon}
+\date{March 2026}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\section{Abstract}
+
+This study investigates the impact of urbanization on bird populations, analyzing observation data from iNaturalist between 2015 and 2026. By examining bird counts and diversity in relation to human population density, the research aims to determine a correlation between urbanization and bird species distribution. The hypothesis states that increasing human population density will have a negative effect on overall bird populations and diversity. There is, however, the exception of species that adapt to urban environments. The methodology involves a spatiotemporal analysis of bird observations, considering potential biases such as selection bias and excitement bias. Statistical tests are employed to identify species with observation counts correlated to urban or non-urban areas. The results indicate a trend of decreasing bird observation counts with increasing population density. Further analysis using odds ratios and kernel density estimation reveals differences in species distribution between urban and non-urban areas. Temporal analysis highlights the impact of events like the Covid-19 pandemic on observation patterns. Histograms of observation counts versus population density and its inverse support the conclusion that less populated areas tend to have higher bird counts. 
+
+\section{Introduction}
+
+Human development and growth has gone up for centuries and with this comes the destruction of natural environments. "Human encroachment continues to spread deeper into the remaining intact ecosystems and wilderness areas" \cite{QuailStudy}. This has led to a decrease in overall population for many species world-wide.
+
+Previous studies collect data through field research in only a couple locations in order to analyze effects between natural environments and human behavior and expansion. This study aims to find how urbanization, or the population density, in a given area affects ave species, around the world and across time, in regards to their true count and diversity. The goal is to see how rapid human population growth has changed ave populations and how their behavior has potentially changed over time and across the world. A precise goetemporal analysis is performed across many species of aves and observe any correlation, or lack thereof, to human population. Our hypothesis is that the total bird population and overall diversity has gone down with the rise in human population with one species exception which finds its own niche within more urban areas.
+
+\section{Methods}
+
+In order to have data that properly represents the true population, and diversity of species a random sample of observations is necessary. This presents the first type of bias that is encountered due to the nature of the data that is being collected - selection bias. In order to overcome the selection bias, a script which randomly selected users and included who they followed and who followed them, recruited them via message on \textit{iNaturalist} to participate in the study. This guaranteed that a random subset of all iNaturalist users was selected to participate in the study and have their observations included. This also allowed for a more even spatiotemporal observation distribution. For the analysis, however, only observations from 2015 to 2026 were selected.
+
+To be able to process the data collected from \textit{iNaturalist}, accurate population data at different latitudes and longitudes was necessary. First, the latitude and longitude were put through a reverse geocoder which returned the nearest city to the point. An exactness of the city became irrelevent as country name and if in the United States, a state name as well, was the only important information that was necessary. With the additional information of the year, data from an online repository of world city population density maps, WorldPop \cite{worldpop}, was fetched from their set of Global 2015 to 2030 country population maps. The files were at the country scale and allowed for very fine precision of about 3 arc seconds or $3"$ which is close to $100m$. The arc second is an angular measurement and can be defined in terms of an arc minute.
+
+\begin{center}
+$ 1" = \frac{1}{3600} = \frac{1}{60} \cdot \frac{1}{60} $
+\end{center}
+
+This unit is used in astronomy and represents the width and height of a pixel in the files grabbed. The file can be thought of similarly to a spreadsheet, where there is a grid of cells and each cell contains a value that represents the number of people that live within it. Each cell has the same size projected into two dimensions. The main advantage of the data is its precision; a cell that contains a park or a small body of water will return a very small value even if it is surrounded by a densely populated city. The data, however, is not so precise that any uncertainty in the true location of the observation becomes significant.
+
+In order to be able to get consistent population density data around the world, a get area function was written to calculate the area of each cell inside the population density maps. Intuitively, one might assume that each cell represents the same area, but this intuition is incorrect. The reason for this is because the earth spherical shape and the modeling of the population density data which is represented two dimensionally. Longitudinal lines are parallel and are equidistant no matter where you are on earth. This same fact is not true for the latitude: there is a convergence of the meridians. This relation can be modeled using the cosine function. To be able to do this we need two things, a base area and the cosine of the latitude. The math done for the area calculations is as follows.
+
+\begin{center}
+$Area = R^2 \cdot cos(lat) \cdot \Delta\phi \cdot\ \Delta\lambda$
+
+where, $R$ is the radius of the earth\\
+$lat$ is our latitude at the given point\\
+$\Delta\phi$ is the height of the pixel\\
+$\Delta\lambda$ is the width of the pixel\\
+  
+\end{center}
+
+since the data is taken at 3 arc second pixels, we'll have to convert that to radians
+
+\begin{center}
+$\Delta\phi, \space \Delta\lambda = \frac{3}{3600} \cdot \frac{\pi}{180}$
+\end{center}
+
+this translated into code is
+
+\begin{verbatim}
+deltaPhi, deltaLambda = math.radians(3/3600)
+\end{verbatim}
+
+then since the Radius of the earth is a known physical quantity ($R = 6371.0008$), we can square both quantities and multiply together:
+
+\begin{verbatim}
+baseArea = R**2 * deltaPhi * deltaLambda
+\end{verbatim}
+
+this will give us the base area in kilometers squared for a pixel. Finally, we multiply the base area by the cosine of the latitude to get the area in kilometers squared of the pixel at that latitude.
+
+\begin{center}
+$Area = baseArea \cdot cos(latitude)$
+\end{center}
+
+\begin{verbatim}
+pixelAreaKm2 = baseArea * math.cos(math.radians(latitude))
+\end{verbatim}
+
+Then of course our quantity given from that pixel can be divided by our new area to get our population density at a given point.
+
+The main, important functions for the analysis are the getPopulation function and getMaxDensityInArea function. These two functions normalize the score that is plotted and allows us to determine whether or not an observation is urban or not. To accomplish both, the latitude and longitude of the point is used as the center and a circle of area 1 is created to either find the max density within it or sum up all the point within the circle to get a localized population. The Organisation for Economic Co-operation and Development\cite{OECD} defines an urban area as $1500 \frac{people}{km^2}$ , we can find the total number of people inside the circle and divide by the area found with the area function to create our new parameters; if the number of people within the circle is greater than the threshold then we can safely say the area is urban and so our observation was taken in an urban area.
+
+since the density is defined over $km^2$, the area of the circle is set to $1km^2$ in order to simplify calculations. This also means that the radius of the circle is a constant.
+
+\begin{center}
+$ 1 = \pi \cdot r^2$\\
+$ r = \frac{1}{\sqrt{\pi}} = 0.5641 $
+\end{center}
+
+\section{Results}
+
+Since it is impossible to tell the true count of birds in any given area, the number of observations for a given species will be the closest possible indication of a species' count. From this, the number of observations is meant to represent the true number of birds in a species. Furthermore, \textit{iNaturalist} will serve to represent a populations total observations of the true number of birds. The analysis of the observations does not take into account any user data such as how often a user might post, how many total observations they have, etc. which could result in sampling bias.
+
+\textit{iNaturalist} entries are categorized by "grade" \cite{researchGradeiNat}. These grades specify that they are valid for use in research and are determined by an objective assessment. The assessment allows for data to be verifiable and free of bias which therefore become useful to citizen science research. One such qualification for an observation to be considered research grade is that the location must exist, and be reasonable or verifiable. In order to further correct for bias, observations which were labeled as research grade were the primary focus of the research, and also made up for 93\% of all observations submitted to the project. Since only research grade observations were chosen, this meant that it eliminated any uncertainty in the bird species
+
+Certain uncertainties also crop up when considering iNaturalist data such as the location at which an observation is placed; how certain can you be of the location of the observation and to what degree can we trust it? Fortunately, due to the way that our population density data is formatted and its precision discussed in the methods section, any uncertainty in the location of the observation becomes negligible. 
+
+Another bias which might be present inherently due to the data used was excitement bias. The excitement bias would describe an observers tendency to focus on more uncommon species. A limitation of the data set acquired is that some countries have very little observations due to internet laws or lack of internet access. It then follows that the observations that could come from those countries are from tourists, which could heavily bias non-urban observations. 
+
+Since we are assuming that the population is all bird observations, we can confidently assume that the observations used for the analysis is indeed under 10\% of the population. A chi squared test was then run on all observations and species counts. The results yielded a list of species which had a correlation between its observation counts and the type of area where it was observed. This list of species included species which satisfied $\alpha = 0.05, p < \alpha$ or a p-value under a significance level of 5\% where the null hypothesis was that observation counts were independent of the area type (urban and non-urban). Since many hypotheses were tested, the Bonferroni correction was applied in order to correct making type I errors (incorrectly rejecting the null hypothesis). The correction is defined as $p_i \leq \frac{\alpha}{n}$, where $n$ is the total number of hypotheses being tested and $p_i$ is the p value for the $i$-th hypothesis. A small sample from the list of species sorted in descending order of p-values is shown in Table \ref{chiResults} below.
+
+\begin{table}[H]
+\centering
+\begin{adjustbox}{width=1\textwidth}
+\caption{Chi squared results}
+\pgfplotstabletypeset[
+    col sep=comma,
+    header=true,
+    every head row/.style={before row=\toprule, after row=\midrule},
+    every last row/.style={after row=\bottomrule},
+    string type
+]{./images/chisquared.txt}
+\label{chiResults}
+\end{adjustbox}
+\end{table}
+
+Now that we have identified a list of species which are correlated with either being urban or non-urban, we can highlight these species in our analysis and see how they compare to the rest of the observations. Six graphs were created based on various parameters to highlight their spatiotemporal relations with bird observation counts and diversity. Red in any graph will represent the species that were identified in the chi squared test.
+
+A scatterplot was generated comparing the number of observations per capita versus the mean population density for each species. The species observation counts are normalized by the mean population of where each observation for that species occurred in order to control for the fact that more observations will occur in locations where there are more people. Both axes are on a $log_{10}$ scale due to the size of both the observation counts and the population densities. The trend shows that as the mean population density increases the observation counts decrease. This is true for both the general population and the significant species.
+
+\begin{figure}[H]
+\includegraphics[width=\textwidth]{speciesDensityScatter}
+\floatfoot{}
+\caption{}
+\label{speciesDensityScatter}
+\end{figure}
+
+The next question that we must ask is how strongly is each species represented in terms of the area it is in? One way to visualize this relationship is by plotting the odds ratio with a kernel density estimation or KDE. The KDE aids in estimating the probability density function for a random variable such as the chances of seeing species $x$ in $y$ environment. 
+
+It is also helpful to express the strength of the association between a species in an urban area and be able to compare "significant" and "non-significant" species. In order to make the curve easier to understand, a log scale is also used.
+
+\begin{figure}[H]
+\includegraphics[width=\textwidth]{oddsRatioDistribution}
+\floatfoot{}
+\caption{}
+\label{oddsRatioDistribution}
+\end{figure}
+
+To better understand the odds ratio, we construct a contingency table for every species where $a$ and $b$ are the species counts in urban and non-urban areas respectively and $c$ and $d$ are the number of observations for all other birds in urban and non-urban areas respectively. The odds ratio is then defined as such:
+
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{|l|c|c|}
+\hline
+ & \textbf{Urban} & \textbf{Non-Urban} \\ \hline
+\textbf{Species} & a & b \\ \hline
+\textbf{Not Species} & c & d \\ \hline
+\end{tabular}
+\caption{Contingency Table for Urban vs. Non-Urban Species Distribution}
+\end{table}
+
+\begin{center}
+$ OR = \frac{\frac{a}{b}}{\frac{c}{d}} = \frac{a \cdot d}{b \cdot c}$\\
+\end{center}
+
+Then, we can center a curve from the KDE of these figures by taking the logarithm of our values. Since it is a smoothed density estimate, it represents the number of species that can be found at the OR values on the x axis. It is also important to note that to prevent any division by zero and to further reduce bias in the estimation, the Haldane-Anscombe correction is used for each cell as shown below.
+
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{|l|c|c|}
+\hline
+ & \textbf{Urban} & \textbf{Non-Urban} \\ \hline
+\textbf{Species} & a+(0.5) & b+(0.5) \\ \hline
+\textbf{Not Species} & c+(0.5) & d+(0.5) \\ \hline
+\end{tabular}
+\caption{Contingency Table for Urban vs. Non-Urban Species Distribution}
+\end{table}
+
+From the graph, we can see two uni-modal distributions centered around the origin. The red curve however is a bimodal distribution where a dip occurs at zero, the smaller hump is on the left side, and there is a larger hump on the right. Since the chi squared test returned species which are not independent of the areas, this means that it lists species which have are correlated with being in urban areas as well as being in non-urban areas, or areas with high population density and low population density. The curve follows what we expect to see as there are less rare non-urban observations than there are common urban observations; a penguin is less likely to be seen compared to a pigeon. Figure \ref{oddsRatioDistribution} helps to truly see the differences between the species and how they compare to the total population.
+
+An analysis across time was also completed for the years 2015 to 2026. Two graphs were produced to best visualize differences between the species observations and the total observations: A double line graph representing the unique species counts per year for urban and non-urban areas and a bar line graph which shows total observations for all species and for the significant species. For both graphs, the Covid-19 pandemic will be useful to keep in mind for context.
+
+\begin{figure}[H]
+\includegraphics[width=\textwidth]{speciesDiversityByYear}
+\floatfoot{}
+\caption{}
+\label{speciesDiversityByYear}
+\end{figure}
+
+The non-urban species diversity per year curve demonstrates an upward trend from the first five years. The curve appears smooth and parabolic indicating that more species could potentially be moving towards less populous areas. The curve then, however, jumps down and becomes more flattened. This likely occurs due to the Covid-19 pandemic which restricted travel across the world and would subsequently stunt more observations away from densly populated areas. The red line which represents the urban observations shows a stable increase over time with no sudden increase or decrease which indicates that number of species in urban areas was mostly unaffected by the pandemic. 
+
+Observations counts over the years also reveal two main limitations of this study: The observation count over time does not remain constant and major world events impact the observations but would not reflect actual bird counts. Both of these limitations are best shown in the graph below.
+
+\begin{figure}[H]
+\includegraphics[width=\textwidth]{observationsByYear}
+\floatfoot{}
+\caption{}
+\label{observationsByYear}
+\end{figure}
+
+The blue bars represent total observation counts per year over the total observation counts in order to get a normalized score between 0 and 1. The bars, however, show an upward trend which would indicate that each year the bird count increases. More than likely, the increase is due to more users adding observations to the \textit{iNaturalist} over time.
+
+The red bar is slightly noisy due to the changes in the number of observations for each year. For example, 2015 shows a relatively low count due to how comparatively little observations were done that year. This, again, displays the limitations of using \textit{iNaturalist}. Otherwise, the normalized observations of the significant species seems to be bounded within 0.55 and 0.58. The points could be plotted without the line and then a linear regression could be run to find the best fit curve. As previously mentioned, however, the Covid-19 pandemic affects both 2020 and 2021, showing a spike in the number of normalized observations for the significant species. As more people were confined to urban centers, the number of observations of urban species rose.
+
+In order to truly answer how urbanization has an effect on bird counts, a histogram of observation count versus population density was created. If population density or "urbanization" truly does have an effect on bird population, then we expect there to be a skew in the histogram.
+
+\begin{figure}[H]
+\includegraphics[width=\textwidth]{observationsByDensity}
+\floatfoot{ The x axis is on a log base 10 scale in order to see the full dataset }
+\caption{}
+\label{observationsByDensity}
+\end{figure}
+
+What can be seen from the histogram is that it is indeed left skewed; most observations are made where the population density is higher. The tail of the graph does indicate that there are still many observations being done in less urban areas which would signal more activity. This is additionally reinforced due to the steep drop off of observations past the x value at which the urban threshold has been attained, or where a city is considered urban. Moreover, there is a constant number of observations for a population density range of approximately $10^3$, from $10^{-1}$ to $10^1$. This means that the skew is due to the higher number of people there to take observations and any area which has a higher population sees a sharp decrease in the number of birds. Since the tail is more constant there is a balance between those that live in less populated areas and those that travel to these areas for observations and therefore it can be concluded that a less populous area would result in a higher ave count.
+
+The same idea for analyzing observation counts is applied for a histogram of observation counts versus the inverse of the population. Because of the aforementioned accuracy of the population density maps, plotting simply over population density at the given point may be biased in that there could be localized "non-urban" areas such as parks or lakes that would give no population density in a large city. To counter this, the immediate surrounding population of an observation was calculated and then the inverse was used for the x axis.
+
+\begin{figure}[H]
+\includegraphics[width=\textwidth]{observationsByInverseDensity}
+\floatfoot{}
+\caption{}
+\label{observationsByInverseDensity}
+\end{figure}
+
+The benefit of taking the inverse of population is that it effectively normalizes the observations removing any stronger effect there may be from observations with lots of people. For example, observations made within a big city will have a lower score since the immediate population is larger whereas observations made where the population is extremely small will yield a number closer to 1. The number of observations increases rapidly somewhere between $10^{-5}$ and $10^{-4}$ until the threshold for an urban area. The rest shows a slow decrease in number of observations as the inverse of population gets closer to 1. It is also worth noting that there are a significant number of observations taken at areas with "zero" population (n = 130,745) as noted in the graph. The dotted line at the top indicates the peak that would be attained if the bar was displayed for such observations. The reason for omitting the bar for zero relative population is the same reason for division by zero error; as x gets closer to 0, the inverse grows to infinity and therefore the scale for the graph would break.
+
+The large number of observations where the relative population is near zero or at zero confirms that there indeed is a significantly larger number of aves in less populated areas.
+
+\printbibliography[heading=bibintoc]
+
+\end{document}

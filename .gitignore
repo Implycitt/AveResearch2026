@@ -8,3 +8,28 @@ __pycache__/
 # population density maps get downloaded here, no need to upload to github
 Research/Countries/
 Research/Historic/
+
+## Core latex/pdflatex auxiliary files:
+*.aux
+*.lof
+*.log
+*.lot
+*.fls
+*.out
+*.toc
+*.fmt
+*.fot
+*.cb
+*.cb2
+.*.lb
+*.bbl
+*.bbl-SAVE-ERROR
+*.bcf
+*.blg
+*.dvi
+*.fdb_latexmk
+*.xml
+*.gz
+
+# same images as the graphs section but in another spot to make LaTeX compiling easier
+Research/Documents/images/

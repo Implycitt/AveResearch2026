@@ -38,7 +38,6 @@ The project is structured as pictured below:
 ```structure
 .
 ├──in/
-├──Data/
 ├──Research/
 │   ├──Papers/
 ├──slides/
@@ -52,8 +51,7 @@ There are various markdown files in some of the folders for further documentatio
 Each main folder contains a certain part of the research which is described in the following way:
 
 * in -> input files used in the code
-* [research](https://github.com/Implycitt/AveResearch2026/blob/main/Research/README.md) -> research paper in various formats and relevant notes
-* Data -> research observations with relevant fields compiled into various formats
+* [research](https://github.com/Implycitt/AveResearch2026/blob/main/Research/README.md) -> research paper in various formats, graphs, worldpop maps
 * slides -> notes and slides for presentation
 * [src](https://github.com/Implycitt/AveResearch2026/blob/main/src/README.md) -> all code used described in the Code section
 
@@ -64,6 +62,12 @@ Each main folder contains a certain part of the research which is described in t
 The papers will be uploaded inside the Research folder under the Papers folder: ```./Research/Papers/```
 
 They will be available in LaTeX, pdf, and plaintext.
+
+The data used in this research was graciously granted by the citizen science community at [iNaturalist](https://inaturalist.org). All data used in the research is available for viewing and to download in the Research folder but is still subject to the Data User Agreement as detailed by [GBIF](https://www.gbif.org/terms/data-user) and the [iNaturalist](https://inaturalist.org) platform. These observations are not owned by the members of this project and should be [properly cited](https://help.inaturalist.org/en/support/solutions/articles/151000170344-how-should-i-cite-inaturalist-) when relevant.
+
+The data is chunked into sections for disk space reasons as well as api limits. The data is also available in json and in a parquet format.
+
+Additionally, all population density data used for the analysis comes from [WorldPop](https://data.worldpop.org/GIS/Population/). The files used for the analysis will not be pushed to this repository so that cloning it does not take a couple hours. More information on the files will be detailed in the data folder readme.
 
 ### Code
 
@@ -78,14 +82,6 @@ The code sections and their respective markdown files document the goal of each 
 All code was authored entirely by Quentin Bordelon and any further inquiries should be forwarded to the email listed in the <a href="#Contact"> contact </a> section.\
 If there are any errors or issues in the code or any documentation please refer to the <a href="#How to Contribute"> how to contribute </a> section for how to submit pull requests to this repository.\
 Anyone is free to use and distribute this code freely as part of the MIT license which you can refer to in the <a href="#License"> license </a> section. All code will, additionally, contain a header with the license.
-
-### Data
-
----
-
-The data used in this research was graciously granted by the citizen science community at [iNaturalist](https://inaturalist.org). All data used in the research is available for viewing and to download in the Research folder but is still subject to the Data User Agreement as detailed by [GBIF](https://www.gbif.org/terms/data-user) and the [iNaturalist](https://inaturalist.org) platform. These observations are not owned by the members of this project and should be [properly cited](https://help.inaturalist.org/en/support/solutions/articles/151000170344-how-should-i-cite-inaturalist-) when relevant.
-
-The data is chunked into sections for disk space reasons as well as api limits. The data is also available in json and in a parquet format.
 
 ## How to Contribute
 

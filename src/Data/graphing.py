@@ -129,7 +129,7 @@ def speciesDensityScatter(dataFrame, significantSpecies=None, file='speciesDensi
 
 def observationsByYear(dataFrame, significantSpecies=None, file='observationsByYear'):
     df = dataFrame.dropna(subset=['year'])
-    df = df[df['year'] > 0]
+    df = df[df['year'] > 2014]
     years = sorted(df['year'].unique())
     yearTotals = df.groupby('year').size()
     allByYear = df.groupby('year').size().reindex(years, fill_value=0)
@@ -137,7 +137,7 @@ def observationsByYear(dataFrame, significantSpecies=None, file='observationsByY
     _, ax = plt.subplots(figsize=(12, 6))
  
     grandTotal = df.shape[0]
-    ax.bar(years, allByYear / grandTotal, color='steelblue', alpha=0.7, label='All species')
+    ax.bar(years, allByYear, color='steelblue', alpha=0.7, label='All species')
  
     if significantSpecies is not None and not significantSpecies.empty:
         sigTaxa = set(significantSpecies['taxonName'])
@@ -247,4 +247,7 @@ def main():
     speciesDensityScatter(dataFrame, significant)
  
 if __name__ == "__main__":
-    main()
+    dataFrame = pd.read_parquet("./Research/processedObservations.parquet")
+    significant = analysis.chiSquaredPerSpecies(dataFrame)
+
+    observationsByYear(dataFrame, significant)

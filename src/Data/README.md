@@ -28,14 +28,7 @@ TODO
 
 ---
 
-``` 
-@function fetchProjectData
-Grabs data from the iNaturalist project page.
-@param projectSlug string: link to the project page
-@param startId integer: starting id for splitting up observations into multiple files
-@param endId integer: end id similarly to have a stopping point for the split
-@param filename string: name of the file that the chunk goes to
-```
+TODO
 
 ### popdensity.py
 
