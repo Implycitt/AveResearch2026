@@ -3,7 +3,7 @@
     @file graphing.py
     @author Quentin Bordelon
     <pre>
-    Date: 15-03-2026
+    Date: 12-04-2026
 
     MIT License
 
@@ -50,8 +50,8 @@ def observationsByDensity(dataFrame, file='observationsByDensity', bins=150):
     data = data[data > 0]
     ax.set_xscale('log')
     binEdge = np.logspace(np.log10(data.min()), np.log10(data.max()), bins+1)
-    ax.hist(data, bins=binEdge, color='steelblue', edgecolor='white', linewidth=0.5, alpha=0.85)
-    ax.axvline(URBAN_THRESHOLD, color='crimson', linestyle='--', linewidth=1.2, label=f'Urban threshold ({URBAN_THRESHOLD})')
+    ax.hist(data, bins=binEdge, color='#666666', edgecolor='white', linewidth=0.5, alpha=0.85)
+    ax.axvline(URBAN_THRESHOLD, color='black', linestyle='--', linewidth=1.5, label=f'Urban threshold ({URBAN_THRESHOLD})')
     ax.legend(fontsize=9)
 
     ax.set_xlabel('Population Density')
@@ -74,11 +74,11 @@ def observationsByInverseDensity(dataFrame, file='observationsByInverseDensity',
 
     binEdge = np.logspace(np.log10(inverseDensity.min()), np.log10(inverseDensity.max()), bins + 1)
     ax.set_xscale('log')
-    ax.hist(inverseDensity, bins=binEdge, color='steelblue', edgecolor='white', linewidth=0.5, alpha=0.85)
+    ax.hist(inverseDensity, bins=binEdge, color='#666666', edgecolor='white', linewidth=0.5, alpha=0.85)
     if zeroes > 0:
-        ax.axhline(zeroes, color='grey', linestyle=':', linewidth=1.2, label=f'Zero population (n={zeroes:,})') 
+        ax.axhline(zeroes, color='black', linestyle=':', linewidth=1.5, label=f'Zero population (n={zeroes:,})')
     inverseThreshold = 1.0 / URBAN_THRESHOLD
-    ax.axvline(inverseThreshold, color='crimson', linestyle='--', linewidth=1.2, label=f'Urban threshold (1/{URBAN_THRESHOLD})')
+    ax.axvline(inverseThreshold, color='black', linestyle='--', linewidth=1.5, label=f'Urban threshold (1/{URBAN_THRESHOLD})')
     ax.legend(fontsize=9)
  
     ax.set_xlabel('Inverse Population')
@@ -106,20 +106,21 @@ def speciesDensityScatter(dataFrame, significantSpecies=None, file='speciesDensi
  
     base = grouped[~grouped['taxonName'].isin(sigTaxa)]
     ax.scatter(base['meanDensity'], base['obsPerPop'],
-               color='steelblue', alpha=0.35, s=14, linewidths=0, label='All species')
+               color='#aaaaaa', alpha=0.8, s=14, linewidths=0,
+               marker='o', label='All species')
  
     if sigTaxa:
         sig = grouped[grouped['taxonName'].isin(sigTaxa)]
         ax.scatter(sig['meanDensity'], sig['obsPerPop'],
-            color='crimson', alpha=0.75, s=22, linewidths=0,
-            label=f'Chi-sq significant (n={len(sig)})')
+            color='black', alpha=0.75, s=28, linewidths=0,
+            marker='^', label=f'Chi-sq significant (n={len(sig)})')
  
     ax.set_xscale('log')
     ax.set_yscale('log')
     ax.set_xlabel('Mean Population Density (people/km2)')
     ax.set_ylabel('Observations per Capita')
     ax.set_title('Observations per Capita vs Mean Population Density per Species')
-    ax.axvline(URBAN_THRESHOLD, color='#666666', linestyle='--', linewidth=1.0, label=f'Urban threshold ({URBAN_THRESHOLD})')
+    ax.axvline(URBAN_THRESHOLD, color='black', linestyle='--', linewidth=1.2, label=f'Urban threshold ({URBAN_THRESHOLD})')
     ax.legend(fontsize=9, framealpha=0.9)
     ax.grid(axis='both', linestyle='--', alpha=0.3)
  
@@ -136,8 +137,7 @@ def observationsByYear(dataFrame, significantSpecies=None, file='observationsByY
  
     _, ax = plt.subplots(figsize=(12, 6))
  
-    grandTotal = df.shape[0]
-    ax.bar(years, allByYear, color='steelblue', alpha=0.7, label='All species')
+    ax.bar(years, allByYear, color='#888888', alpha=0.85, hatch='//', edgecolor='white', label='All species')
  
     if significantSpecies is not None and not significantSpecies.empty:
         sigTaxa = set(significantSpecies['taxonName'])
@@ -145,10 +145,9 @@ def observationsByYear(dataFrame, significantSpecies=None, file='observationsByY
         sigByYear = dfSig.groupby('year').size().reindex(years, fill_value=0)
         ax2 = ax.twinx()
         ax2.plot(years, sigByYear / yearTotals,
-            color='crimson', linewidth=2.0, marker='o', markersize=4,
-            label=f'Chi-sq significant (n={len(sigTaxa)} species)')
-        ax2.set_ylabel('Significant species obs over total obs that year', color='crimson')
-        ax2.tick_params(axis='y', labelcolor='crimson')
+            color='black', linewidth=2.0, marker='s', markersize=5,
+            linestyle='--', label=f'Chi-sq significant (n={len(sigTaxa)} species)')
+        ax2.set_ylabel('Significant species obs / total obs that year')
         ax2.legend(loc='upper left', fontsize=9)
  
     ax.set_xlabel('Year')
@@ -188,17 +187,18 @@ def oddsRatioDistribution(dataFrame, significantSpecies, file='oddsRatioDistribu
  
     _, ax = plt.subplots(figsize=(11, 6))
  
-    for vals, color, label in [
-        (lAll, 'grey', f'All species (n={len(lAll)})'),
-        (lOther, 'steelblue', f'Non-significant (n={len(lOther)})'),
-        (lSig, 'crimson', f'Significant (n={len(lSig)})'),
-    ]:
+    styles = [
+        (lAll,   'black', '-',  '////', f'All species (n={len(lAll)})'),
+        (lOther, '#666666', '--', '\\\\\\\\', f'Non-significant (n={len(lOther)})'),
+        (lSig,   '#111111', ':',  '....', f'Significant (n={len(lSig)})'),
+    ]
+    for vals, color, ls, _, label in styles:
         if len(vals) >= 2:
             kde = gaussian_kde(vals, bw_method=0.3)
-            ax.plot(xGrid, kde(xGrid), linewidth=2.0, color=color, label=label)
-            ax.fill_between(xGrid, kde(xGrid), alpha=0.08, color=color)
+            ax.plot(xGrid, kde(xGrid), linewidth=2.0, color=color, linestyle=ls, label=label)
+            ax.fill_between(xGrid, kde(xGrid), alpha=0.10, color=color)
  
-    ax.axvline(0, color='black', linestyle='-', linewidth=1.2, label='Neutral')
+    ax.axvline(0, color='black', linestyle='-', linewidth=1.5, label='Neutral (OR=1)')
  
     ax.set_xlabel('Odds Ratio')
     ax.set_ylabel('Population Density')
@@ -220,8 +220,8 @@ def speciesDiversityByYear(dataFrame, file='speciesDiversityByYear'):
  
     _, ax = plt.subplots(figsize=(12, 6))
  
-    ax.plot(years, urban.reindex(years), color='crimson', linewidth=2.0, marker='o', markersize=4, label='Urban')
-    ax.plot(years, nonUrban.reindex(years), color='steelblue', linewidth=2.0, marker='o', markersize=4, label='Non-urban')
+    ax.plot(years, urban.reindex(years), color='black', linewidth=2.0, marker='^', markersize=5, linestyle='--', label='Urban')
+    ax.plot(years, nonUrban.reindex(years), color='#555555', linewidth=2.0, marker='o', markersize=5, linestyle='-', label='Non-urban')
  
     ax.set_xlabel('Year')
     ax.set_ylabel('Unique Species Count')
@@ -249,5 +249,3 @@ def main():
 if __name__ == "__main__":
     dataFrame = pd.read_parquet("./Research/processedObservations.parquet")
     significant = analysis.chiSquaredPerSpecies(dataFrame)
-
-    observationsByYear(dataFrame, significant)
